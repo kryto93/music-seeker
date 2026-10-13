@@ -72,6 +72,26 @@ def _get_ytmusic():
 
 # ── Deezer ──
 
+def _deezer_track(item: dict) -> dict:
+    """Map one Deezer track object to the shape the app passes around.
+
+    Shared by search and the artist top-tracks endpoint so the two can never
+    hand the frontend subtly different track dicts.
+    """
+    return {
+        "id": str(item["id"]),
+        "name": item.get("title", ""),
+        "artist": item.get("artist", {}).get("name", ""),
+        "artist_id": str(item.get("artist", {}).get("id", "")),
+        "album": item.get("album", {}).get("title", ""),
+        "year": "",
+        "image": item.get("album", {}).get("cover_big", ""),
+        "url": item.get("link", ""),
+        "duration_ms": item.get("duration", 0) * 1000,
+        "type": "track",
+    }
+
+
 async def deezer_search(query: str, search_type: str = "track", limit: int = 20, offset: int = 0) -> list[dict]:
     type_map = {"track": "search", "album": "search/album", "artist": "search/artist", "playlist": "search/playlist"}
     endpoint = type_map.get(search_type)
@@ -90,17 +110,7 @@ async def deezer_search(query: str, search_type: str = "track", limit: int = 20,
     results = []
     for item in data.get("data", []):
         if search_type == "track":
-            results.append({
-                "id": str(item["id"]),
-                "name": item.get("title", ""),
-                "artist": item.get("artist", {}).get("name", ""),
-                "album": item.get("album", {}).get("title", ""),
-                "year": "",
-                "image": item.get("album", {}).get("cover_big", ""),
-                "url": item.get("link", ""),
-                "duration_ms": item.get("duration", 0) * 1000,
-                "type": "track",
-            })
+            results.append(_deezer_track(item))
         elif search_type == "album":
             results.append({
                 "id": str(item["id"]),
@@ -119,6 +129,10 @@ async def deezer_search(query: str, search_type: str = "track", limit: int = 20,
                 "artist": item.get("name", ""),
                 "image": item.get("picture_big", ""),
                 "url": item.get("link", ""),
+                # Deezer orders artist search by its own relevance, not by size:
+                # "Adele" comes back behind "Adèle & Zalem" and the real Queen is
+                # fifth. Fan count is how a caller tells them apart.
+                "fans": item.get("nb_fan", 0),
                 "type": "artist",
             })
         elif search_type == "playlist":
@@ -132,6 +146,21 @@ async def deezer_search(query: str, search_type: str = "track", limit: int = 20,
                 "type": "playlist",
             })
     return results
+
+
+async def deezer_artist_top(artist_id: str, limit: int = 100) -> list[dict]:
+    """An artist's own tracks in Deezer's popularity order.
+
+    Includes the ones where they are a guest ("Feel This Moment (feat. Christina
+    Aguilera)"), which is what a listener means by an artist's popular songs and
+    what Spotify's artist page shows too.
+    """
+    async with httpx.AsyncClient(timeout=10) as client:
+        await _deezer_limit()
+        resp = await client.get(f"{DEEZER_BASE}/artist/{artist_id}/top", params={"limit": limit})
+        resp.raise_for_status()
+        data = resp.json()
+    return [_deezer_track(item) for item in data.get("data", [])]
 
 
 async def deezer_get_track(track_id: str) -> dict:
@@ -744,14 +773,142 @@ async def _try_provider(name: str, query: str, search_type: str, limit: int, off
     return results
 
 
+# ── Popularity ordering for artist-name queries ───────────────────────
+# Deezer's text search is relevance-ranked, and for a bare artist name that is
+# not the same as "their best songs": searching "Christina Aguilera" opened with
+# Maroon 5's "Moves Like Jagger" and "Nirvana" put a Kerchak song titled
+# "Nirvana" above "Lithium". When the query really is an artist's name, their own
+# most-played tracks are what was meant, so those go first and the ordinary
+# relevance results follow behind them.
+_ARTIST_CACHE_TTL = 1800          # 30 min — popularity moves slowly
+_ARTIST_CACHE_MAX = 256
+_artist_by_name_cache: dict[str, tuple[dict | None, float]] = {}
+_artist_top_cache: dict[str, tuple[list[dict], float]] = {}
+
+# How much of the ordinary result page must already belong to the artist before
+# we accept the query as their name. Song titles that are also artist names
+# score 0-1 of 10 ("Creep", "Hurt", "Yesterday", "Bohemian Rhapsody" all have a
+# namesake band), while real artist queries score 7-10, so the gap is wide and
+# the threshold is not delicate.
+_ARTIST_DOMINANCE_MIN = 3
+_ARTIST_DOMINANCE_SAMPLE = 10
+
+
+def _cache_get(store: dict, key: str, ttl: float):
+    """(value, True) on a live hit, (None, False) otherwise."""
+    hit = store.get(key)
+    if hit and time.time() - hit[1] < ttl:
+        return hit[0], True
+    return None, False
+
+
+def _cache_put(store: dict, key: str, value, max_entries: int) -> None:
+    store.pop(key, None)
+    if len(store) >= max_entries:
+        store.pop(next(iter(store)), None)  # dicts keep insertion order: oldest first
+    store[key] = (value, time.time())
+
+
+async def _deezer_artist_by_name(query: str) -> dict | None:
+    """The artist whose name IS this query, or None.
+
+    Two traps here. Deezer's artist search is not ordered by how big the artist
+    is — "Adele" comes back behind "Adèle & Zalem" and the real Queen is the
+    fifth of five — so neither "first result" nor a short list is safe: take
+    every exact name match from a wide page and keep the one with the most fans.
+    The match must be exact, because a near match is how a song title ("Hurt")
+    quietly turns into a 93-fan band of the same name.
+    """
+    norm = _normalize(query)
+    if not norm:
+        return None
+    cached, found = _cache_get(_artist_by_name_cache, norm, _ARTIST_CACHE_TTL)
+    if found:
+        return cached
+    artists = await deezer_search(query, "artist", 15, 0)
+    exact = [a for a in artists if _normalize(a.get("name", "")) == norm]
+    best = max(exact, key=lambda a: a.get("fans", 0)) if exact else None
+    _cache_put(_artist_by_name_cache, norm, best, _ARTIST_CACHE_MAX)
+    return best
+
+
+async def _deezer_artist_top_cached(artist_id: str) -> list[dict]:
+    cached, found = _cache_get(_artist_top_cache, artist_id, _ARTIST_CACHE_TTL)
+    if found:
+        return cached
+    tracks = await deezer_artist_top(artist_id)
+    _cache_put(_artist_top_cache, artist_id, tracks, _ARTIST_CACHE_MAX)
+    return tracks
+
+
+async def _deezer_popular_first(query: str, limit: int, offset: int) -> list[dict] | None:
+    """One page of "their popular songs first", or None if this isn't an artist.
+
+    None means "not an artist query, use the ordinary search"; an empty list
+    means "it is, and this page is past the end" — the caller must tell those
+    apart or pagination runs on into duplicates of the head.
+
+    Paging stays honest by rebuilding the same merged list on every request and
+    slicing it, rather than stitching two independently paginated sources
+    together at an offset neither of them knows about. That costs one search
+    window per page (capped at Deezer's 100) and keeps the artist lookup and the
+    top tracks on the cache.
+    """
+    # The window is also the dominance sample, so never fetch fewer than the
+    # sample size: the All tab asks for 5 tracks a type, and judging an artist on
+    # 5 rows let two guest appearances outvote them.
+    window = min(100, max(offset + limit, _ARTIST_DOMINANCE_SAMPLE))
+    plain, artist = await asyncio.gather(
+        deezer_search(query, "track", window, 0),
+        _deezer_artist_by_name(query),
+    )
+    if not plain or not artist:
+        return None
+
+    # The name matching above is exact but still blind: "Creep" is a real band
+    # as well as the Radiohead song. Asking whether the ordinary results are
+    # already mostly this artist is what tells the two apart.
+    sample = plain[:_ARTIST_DOMINANCE_SAMPLE]
+    name = _normalize(artist.get("name", ""))
+    hits = sum(1 for t in sample
+               if t.get("artist_id") == artist["id"] or _normalize(t.get("artist", "")) == name)
+    if hits < min(_ARTIST_DOMINANCE_MIN, len(sample)):
+        return None
+
+    head = await _deezer_artist_top_cached(artist["id"])
+    if not head:
+        return None
+    seen = {t["id"] for t in head}
+    merged = head + [t for t in plain if t["id"] not in seen]
+    return merged[offset:offset + limit]
+
+
 async def search(query: str, search_type: str = "track", limit: int = 20, offset: int = 0,
-                 provider: str = "deezer", fallback: str = "", raise_on_error: bool = False) -> list[dict]:
+                 provider: str = "deezer", fallback: str = "", raise_on_error: bool = False,
+                 popular_first: bool = False) -> list[dict]:
     """Search with the specified provider, falling back if needed.
 
     With raise_on_error=True, a ProviderError is raised when every attempted leg
     errored out, so callers can tell an outage from a legitimately empty result.
+
+    popular_first asks for an artist-name query to lead with that artist's most
+    popular tracks. It is opt-in because it is only right for a search box: a
+    caller resolving one known track wants relevance, not a popularity list. Only
+    Deezer implements it; other providers expose no top-tracks endpoint and are
+    served unchanged.
     """
     provider = _canonical_provider(provider)
+
+    if popular_first and search_type == "track" and provider == "deezer":
+        try:
+            ranked = await _deezer_popular_first(query, limit, offset)
+            if ranked is not None:
+                for item in ranked:
+                    item["provider"] = "deezer"
+                return ranked
+        except Exception as e:
+            # Never let the nicety break the search it was decorating.
+            logger.warning(f"popularity ordering failed, using plain search: {e}")
 
     if fallback == "none":
         fallback = ""
@@ -841,7 +998,8 @@ async def search_all(query: str, provider: str = "deezer", fallback: str = "",
     """Run track/artist/album/playlist searches concurrently and aggregate (Spotify-style)."""
     types = ("track", "artist", "album", "playlist")
     gathered = asyncio.gather(
-        *(search(query, t, limit_per_type, provider=provider, fallback=fallback, raise_on_error=True)
+        *(search(query, t, limit_per_type, provider=provider, fallback=fallback,
+                 raise_on_error=True, popular_first=(t == "track"))
           for t in types),
         return_exceptions=True,
     )

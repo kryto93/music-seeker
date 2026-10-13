@@ -22,7 +22,11 @@ async def search(
     else:
         provider = app_settings._settings.get("search_provider", "deezer")
         fallback = app_settings._settings.get("search_fallback", "")
-    results = await search_providers.search(q, search_type, limit, offset, provider=provider, fallback=fallback)
+    results = await search_providers.search(
+        q, search_type, limit, offset, provider=provider, fallback=fallback,
+        # The Tracks tab is a search box: an artist's name there means "their
+        # songs", so lead with the popular ones.
+        popular_first=(search_type == "track"))
     return {"results": results, "query": q, "type": search_type}
 
 
