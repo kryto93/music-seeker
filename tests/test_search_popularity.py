@@ -68,7 +68,7 @@ def test_artist_name_leads_with_their_popular_tracks(deezer):
                         _track("t2", "Come As You Are", "Nirvana", "1"),
                         _track("t3", "Lithium", "Nirvana", "1")]
 
-    out = run(sp._deezer_popular_first("Nirvana", 10, 0))
+    out = run(sp._deezer_popular_first("Nirvana", "track", 10, 0))
 
     assert [t["id"] for t in out[:2]] == ["t1", "t2"]
     assert "x9" in [t["id"] for t in out]          # the stranger is kept, just not first
@@ -83,7 +83,7 @@ def test_song_title_that_is_also_a_band_name_is_left_alone(deezer):
                         _track("r2", "Creep (Acoustic)", "Radiohead", "2"),
                         _track("d1", "Creep", "Daniela Andrade", "3")]
 
-    assert run(sp._deezer_popular_first("Creep", 10, 0)) is None
+    assert run(sp._deezer_popular_first("Creep", "track", 10, 0)) is None
     assert deezer["calls"]["top"] == 0, "must not even fetch top tracks it won't use"
 
 
@@ -110,7 +110,7 @@ def test_paging_does_not_repeat_or_skip(deezer):
 
     seen = []
     for offset in range(0, 60, 10):
-        page = run(sp._deezer_popular_first("Queen", 10, offset))
+        page = run(sp._deezer_popular_first("Queen", "track", 10, offset))
         assert page is not None
         seen += [t["id"] for t in page]
         if not page:
@@ -119,7 +119,7 @@ def test_paging_does_not_repeat_or_skip(deezer):
     assert len(seen) == len(set(seen)), "a track showed up on two pages"
     assert seen[:3] == ["h0", "h1", "h2"]
     assert "p0" in seen                      # relevance tail still reachable
-    assert run(sp._deezer_popular_first("Queen", 10, 500)) == [], \
+    assert run(sp._deezer_popular_first("Queen", "track", 10, 500)) == [], \
         "past the end must be empty, not None — None means 'not an artist' and reruns the plain search"
 
 

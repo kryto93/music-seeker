@@ -114,10 +114,12 @@ function _prewarmFirst() {
   } catch {}
 }
 
-export async function playTracks(tracks) {
+// startIndex: where in `tracks` to begin. Starting a song from the middle of a
+// list keeps the whole list as the queue, so the rest plays on in order.
+export async function playTracks(tracks, startIndex = 0) {
   if (!tracks || !tracks.length) return;
   store.playerQueue = tracks;
-  store.playerIndex = 0;
+  store.playerIndex = Math.min(Math.max(0, startIndex | 0), tracks.length - 1);
   _prewarmFirst();
   // Re-anchor DJ per-set state to the NEW subset so the smart queue's candidate
   // pool (== store.playerQueue) is freshly bounded and prediction==commit holds.

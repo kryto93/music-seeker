@@ -7,6 +7,7 @@ import { openModal } from './downloads.js';
 import { loadPlaylistDetail, loadShowDetail, loadArtistDetail, loadAlbumDetail } from './spotify.js';
 import { attachContextMenu, wasLongPress, makeKebabButton, _addToNavidromePlaylist } from './contextmenu.js';
 import { makeHeartButton } from './likes.js';
+import { setPlayContext } from './playcontext.js';
 
 // ── Card Helper Functions ──
 export function cardPlayBtn(item) {
@@ -381,6 +382,29 @@ function _cancelSearch() {
   if (more) more.style.display = 'none';
 }
 
+// Tracks are rendered as one growing list so that infinite scroll extends it
+// instead of stacking a separate list per page — and so that playing a row
+// queues everything loaded so far, not just the twenty that arrived together.
+let _trackRowQueue = [];
+
+function _renderTrackRows(tracks, append) {
+  const el = $('#searchResults');
+  const existing = append ? el.querySelector('.song-list') : null;
+  if (!existing) _trackRowQueue = [];
+  // Mutated in place: the list registered this very array as its play context,
+  // so appending a page keeps that context current without re-registering.
+  _trackRowQueue.push(...tracks);
+  const sink = { items: [], cards: [] };
+  const list = renderSongRows(tracks, sink, { context: _trackRowQueue });
+  if (existing) {
+    while (list.firstChild) existing.appendChild(list.firstChild);
+  } else {
+    el.innerHTML = '';
+    el.appendChild(list);
+  }
+  checkLibrary(sink.items, el, sink.cards);
+}
+
 // ── Do Search ──
 export async function doSearch(append) {
   // "All" mode has its own renderer; it bumps the shared generation counter
@@ -393,12 +417,19 @@ export async function doSearch(append) {
   const { gen, signal } = _beginSearch();
   const q = $('#searchInput').value.trim();
   if (!q) { $('#searchResults').innerHTML = ''; store.searchLoading = false; saveSearchState(); return; }
+  // Songs read as a list, not a poster wall: the title, artist and duration are
+  // what you scan down, and a card per song fits four of them on a phone.
+  // Albums, artists and playlists stay in the grid, where the cover IS the item.
+  const asRows = store.searchType === 'track';
   if (!append) {
     store.searchOffset = 0;
     store.searchHasMore = true;
     store.searchQuery = q;
-    $('#searchResults').classList.add('grid');
-    $('#searchResults').innerHTML = Array(8).fill('<div class="skeleton skeleton-card"></div>').join('');
+    const el = $('#searchResults');
+    el.classList.toggle('grid', !asRows);
+    el.innerHTML = Array(asRows ? 10 : 8)
+      .fill(asRows ? '<div class="skeleton skeleton-row"></div>' : '<div class="skeleton skeleton-card"></div>')
+      .join('');
   }
   store.searchLoading = true;
   // Append-only: on a fresh search this flashed a load-more skeleton underneath
@@ -408,7 +439,9 @@ export async function doSearch(append) {
     const data = await apiJson(`/api/search?q=${encodeURIComponent(q)}&type=${store.searchType}&limit=20&offset=${store.searchOffset}`, { signal });
     if (gen !== _searchGen) return; // superseded — leave DOM/store to the newer search
     if (data.results.length < 20) store.searchHasMore = false;
-    if (!append) {
+    if (asRows) {
+      _renderTrackRows(data.results, append);
+    } else if (!append) {
       renderResults(data.results, '#searchResults', 'search');
     } else {
       const grid = $('#searchResults');
@@ -477,6 +510,9 @@ function buildTopResultCard(item, fromPage) {
 // sink (optional): { items: [], cards: [] } accumulators so the caller can run a
 // library-check over these rows (they carry `.card` but live outside the grid).
 export function renderSongRows(tracks, sink, opts = {}) {
+  // opts.context: a longer list these rows belong to (infinite scroll appends a
+  // page at a time, but playing row 3 should queue every row on screen, not the
+  // twenty that happened to arrive together).
   const list = document.createElement('div');
   list.className = 'song-list' + (opts.numbered ? ' song-list-numbered' : '');
   tracks.forEach((item, idx) => {
@@ -523,6 +559,8 @@ export function renderSongRows(tracks, sink, opts = {}) {
     list.appendChild(row);
     if (sink) { sink.items.push(item); sink.cards.push(row); }
   });
+  // Starting any row in this list keeps the list as the queue (see playcontext.js).
+  setPlayContext(list, opts.context || tracks);
   attachContextMenu(list, {
     selector: '.song-row[data-item]',
     getItem: (targetEl) => {

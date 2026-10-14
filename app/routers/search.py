@@ -24,9 +24,9 @@ async def search(
         fallback = app_settings._settings.get("search_fallback", "")
     results = await search_providers.search(
         q, search_type, limit, offset, provider=provider, fallback=fallback,
-        # The Tracks tab is a search box: an artist's name there means "their
-        # songs", so lead with the popular ones.
-        popular_first=(search_type == "track"))
+        # The Tracks and Albums tabs are a search box: an artist's name there
+        # means "their music", so lead with the popular releases.
+        popular_first=search_type in ("track", "album"))
     return {"results": results, "query": q, "type": search_type}
 
 

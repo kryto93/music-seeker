@@ -86,6 +86,10 @@
 }
 
 .skeleton-card { height: 280px; border-radius: 16px; }
+/* Song results load as rows, so their placeholders have to be rows too — card
+   skeletons reflowing into a list is a visible jump on every search. Height
+   matches .song-row: 44px thumbnail + 8px padding top and bottom. */
+.skeleton-row { height: 60px; border-radius: 8px; margin-bottom: 2px; }
 
 /* ── Card Action Buttons ──
    bottom/top: these anchor to the BOTTOM of the square artwork, not the

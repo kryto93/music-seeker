@@ -811,11 +811,14 @@ export function init() {
     const card = btn.closest('.card');
     if (!card) return;
     const item = JSON.parse(card.dataset.item);
+    // A song started from inside a list takes the rest of that list with it,
+    // the way it does on Spotify — otherwise playback stops after one track.
+    const { queueFromContext } = await import('./playcontext.js');
+    const ctx = queueFromContext(card, item);
+    const u = await import('./upnext.js');
+    if (ctx) { u.playTracks(ctx.tracks, ctx.index); return; }
     const tracks = await resolveItemTracks(item);
-    if (tracks.length) {
-      const u = await import('./upnext.js');
-      u.playTracks(tracks);
-    }
+    if (tracks.length) u.playTracks(tracks);
   });
 
   // Download button on cards (event delegation)
