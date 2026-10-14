@@ -46,7 +46,9 @@ export function cardSubHtml(item) {
   const type = item.type || 'track';
   if (type === 'track' && artist) {
     let html = `<span class="clickable" data-search-type="artist" data-search-q="${escAttr(artist)}">${esc(artist)}</span>`;
-    if (album) html += ` · <span class="clickable" data-search-type="album" data-search-q="${escAttr(album)}">${esc(album)}</span>`;
+    // Separator and album in one span so a narrow song row can drop both and not
+    // leave a dangling " · " behind the artist name.
+    if (album) html += `<span class="sub-album"> · <span class="clickable" data-search-type="album" data-search-q="${escAttr(album)}">${esc(album)}</span></span>`;
     return html;
   }
   if ((type === 'album' || type === 'episode') && artist) {

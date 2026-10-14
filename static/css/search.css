@@ -243,6 +243,13 @@
      title already truncates, so drop the heart here the same way the numbered
      album/playlist list below does (still reachable from the ⋮ menu). */
   .song-list:not(.song-list-numbered) .song-row .like-btn { display: none; }
+  /* Same reasoning for the two widest remaining passengers on a search row: the
+     duration and the album name. Four trailing controls plus "Artist · Album"
+     left the title about 145px on a 390px screen, so "Can't Hold Us Down (feat.
+     Lil' Kim)" became "Can't Hold Us ...". Spotify's mobile row shows neither.
+     Both stay on wider screens and in the numbered album/playlist list. */
+  .song-list:not(.song-list-numbered) .song-row .song-duration { display: none; }
+  .song-list:not(.song-list-numbered) .song-row .sub-album { display: none; }
   /* Album/playlist track list: maximise room for the title on narrow screens by
      dropping the per-row heart + BPM badge (both still reachable — the ⋮ menu and
      the tempo-filter bar respectively) and tightening the gaps. */
