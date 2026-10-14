@@ -498,8 +498,13 @@ export function init() {
     let sy = 0, dy = 0, tracking = false;
     qPanel.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
+      // This panel closes on an upward swipe — the same gesture that scrolls
+      // the list *down*. Inside the list that swipe belongs to the list, or
+      // the queue can never be scrolled at all (it starts at scrollTop 0, and
+      // the old `scrollTop > 0` guard meant it could never leave it).
       const qList = qPanel.querySelector('.queue-list');
-      if (qList && qList.scrollTop > 0) return;
+      if (qList && qList.contains(e.target) &&
+          qList.scrollTop + qList.clientHeight < qList.scrollHeight - 1) return;
       sy = e.touches[0].clientY;
       dy = 0;
       tracking = true;
@@ -542,8 +547,11 @@ export function init() {
     let sy = 0, dy = 0, tracking = false;
     fpQPanel.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
+      // Closes on a downward swipe; inside the list that gesture scrolls up,
+      // so it only becomes a close once the list sits at its top. Outside the
+      // list (handle, header) the drag always closes.
       const qList = fpQPanel.querySelector('.queue-list');
-      if (qList && qList.scrollTop > 0) return;
+      if (qList && qList.contains(e.target) && qList.scrollTop > 0) return;
       sy = e.touches[0].clientY;
       dy = 0;
       tracking = true;
