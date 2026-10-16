@@ -116,7 +116,11 @@ shared. (With a single shared account every MusicSeeker user saw the admin's pla
 
 `static/index.html` is the concatenation of `frontend/partials/*.html` in glob order.
 The prefixes are always two digits (`00-head.html`, `10-login.html`, …) because a
-single-digit prefix sorts *after* `10-`. The partials are a line-for-line
+single-digit prefix sorts *after* `10-`, and a name starting with punctuation sorts
+above `00-head.html` — its markup would land before `<!DOCTYPE html>` and drop the
+browser into quirks mode. Both of those would satisfy the gate, so the two-digit
+prefix is **enforced** by the build and the check, not merely recommended: a partial
+not matching `[0-9][0-9]-*.html` is an error. The partials are a line-for-line
 decomposition of the document, so the build adds nothing of its own — it is `cat`,
 no templating, no dependency, nothing at runtime.
 

@@ -39,8 +39,16 @@ LC_ALL=C
 export LC_ALL
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Exit 1 is reserved for "partials and index disagree" (see the codes above); a
+# missing library is bad input, so check before sourcing rather than letting `.`
+# fail with exit 1 and report a disagreement that was never measured.
+lib="$root/scripts/lib-partials.sh"
+if [ ! -r "$lib" ]; then
+  echo "check-index: cannot read ${lib#"$root/"}" >&2
+  exit 2
+fi
 # shellcheck source=lib-partials.sh
-. "$root/scripts/lib-partials.sh"
+. "$lib"
 
 partials_dir="$root/frontend/partials"
 index="$root/static/index.html"

@@ -71,6 +71,21 @@ partials_collect() {
         continue
         ;;
     esac
+    # Build order is glob order, so the name decides where the markup lands. A
+    # single-digit prefix sorts before every two-digit one in LC_ALL=C, and a
+    # leading punctuation character sorts before the digits altogether — `-x.html`
+    # would be concatenated above `<!DOCTYPE html>` and put the browser into
+    # quirks mode. Both of those pass a byte-compare gate, because the gate only
+    # asks whether the two sides agree. So the invariant is enforced here.
+    case "$name" in
+      [0-9][0-9]-*.html) ;;
+      *)
+        echo "$tool: partial without a two-digit prefix: $rel" >&2
+        echo "$tool:   names must look like 00-head.html; the prefix is the build order" >&2
+        bad=1
+        continue
+        ;;
+    esac
     if [ ! -r "$entry" ]; then
       echo "$tool: partial is not readable: $rel" >&2
       bad=1

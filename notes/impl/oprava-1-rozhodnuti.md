@@ -403,3 +403,71 @@ skriptů — po opravě konstanty je ve všech 7 bězích „untouched".
    dokument nesáhlo vůbec (jediný řádek, který celek 2 přidává, je z kola 1).
 6. **Scratch strom hooku jde přes `mktemp -d` v `$TMPDIR`.** Na stroji, kde je `/tmp`
    plné nebo `noexec`, hook selže — selže ale uzavřeně (commit neprojde), ne tiše.
+
+---
+
+# Kolo 3 — F1, F2
+
+Oba celky už jsou slité (`1641c5d`, `ec001fc`), tohle je samostatný třetí commit.
+Mění **jen pravidla, ne výstup**: `static/index.html` není v diffu vůbec.
+
+## K3.1 — F2: dvouciferná předpona se vynucuje
+
+`scripts/lib-partials.sh`, druhý `case` v `partials_collect` — po kontrole přípony
+musí jméno sednout na `[0-9][0-9]-*.html`, jinak vlastní hláška a exit 2.
+
+Dokumentace to tvrdila jako invariant (`docs/architecture.md:118`), ale nic to
+nevynucovalo. Dva důsledky, oba se **zeleným** hradlem:
+
+- `-x.html` se v `LC_ALL=C` řadí **před** `00-head.html` — ověřeno expanzí globu,
+  první položka byla `frontend/partials/-x.html`. Jeho bajty by skončily nad
+  `<!DOCTYPE html>` a prohlížeč by jel v quirks mode.
+- `5-nav.html` posune nav za `40-discover.html`.
+
+Ověřeno, oba skripty, čerstvý strom pro každý případ:
+
+| případ | exit (check / build) |
+|---|---|
+| `-x.html` (nad `<!DOCTYPE>`) | 2 / 2 |
+| `5-nav.html` | 2 / 2 |
+| `nav.html` (bez předpony) | 2 / 2 |
+| `100-x.html` (tři číslice) | 2 / 2 |
+| `55x.html` (bez pomlčky) | 2 / 2 |
+| kontrola: 16 stávajících částí | 0 / 0 |
+
+`index.html` se v žádném nezměnil.
+
+Docs doplněny: předpona je **enforced**, ne doporučená, včetně důvodu s quirks mode.
+
+**Vedlejší efekt, který stojí za zmínku:** mutace M6 (`20-nav.html` → `5-nav.html`)
+teď končí **exit 2 místo exit 1**. Pořád červená, ale chytí ji kontrola jména, ne až
+bajtové porovnání — místo 59řádkového diffu dostane člověk větu, co je špatně.
+
+## K3.2 — F1: chybějící nebo nečitelný `lib-partials.sh`
+
+Oba skripty testují `[ -r "$lib" ]` před `.`. Dřív `.` selhalo, `set -e` skript ukončil
+a ven šel syrový `No such file or directory` s exit **1** — což je podle hlavičky
+`check-index.sh` kód pro „rozešlo se", takže volající dostal hlášení o neshodě, která
+se nikdy neměřila.
+
+Ověřeno: chybějící soubor i `chmod 000` → `cannot read scripts/lib-partials.sh`,
+exit 2, oba skripty, `index.html` nedotčený.
+
+## K3.3 — nic se nerozbilo
+
+| kontrola | výsledek |
+|---|---|
+| R1 sada (12 případů × 2 skripty) | 24× exit 2, zelený jen kontrolní běh |
+| hook H1–H5 (R2/R3) | H1 0, H2 1 (`data-smuggled` v HEADu 0×), H3 1, H4 0 bez výpisu, H5 0 |
+| M0–M7 | M0 zelená; M1–M4 exit 1; M6 exit 2 (viz výš); M7 exit 2; index ve všech nedotčený |
+| `sha256(static/index.html)` | `b2d78fd6…b8c6`, v diffu vůbec není |
+| po odebrání značky | `7fabd487…bde8` = reference celku 1 |
+| `pytest tests/ -q` | 39 passed, 3 skipped |
+| dash | oba skripty exit 2, index nedotčený |
+
+## K3.4 — přiznaná mez kola 3
+
+Vynucení je **jen na tvaru jména**, ne na smysluplnosti pořadí. `00-head.html`
+přejmenovaný na `99-head.html` projde — bajtové hradlo ho pak chytí (pořadí se změní,
+soubor nesedí), ale kdyby někdo zároveň přestavěl, platí pořád mez z R8: obě strany
+souhlasí a hradlo mlčí. Jména pořadí nesou, nepopisují.
