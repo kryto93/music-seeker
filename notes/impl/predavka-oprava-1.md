@@ -80,3 +80,75 @@ a právem, výstup je stejný. Proti rozsypání švů oracle není a být nemů
     status-md5     3075d596172167abd66f82ce23177627
     diff-md5       692924062e794a67933096d5dee68915
     untracked-md5  909f20408ef0187f3fd9cbb6c99aa15b
+
+## Kolo 2 (R1–R8) a kolo 3 (F1, F2)
+
+Kolo 2 zavřelo všech šest přeživších z kola 1. Autor šel nad zadání dvakrát,
+obojí správně:
+- **R4 vyřešil strukturou, ne slibem.** Místo aby zapisovatel duplikoval pravidla
+  kontrolora, vytáhl je do `scripts/lib-partials.sh`, který sourcují oba. Nemůžou
+  se rozejít.
+- **Mez z R8 dal i do úspěšné hlášky** (`agreement only — a deleted partial also
+  agrees`), což zadání nežádalo. Člověk, kterého ta mez chrání, čte výstup, ne
+  hlavičku souboru.
+
+Kolo 3 bylo moje rozhodnutí proti doporučení dráhy: F2 označila za nit, vedení ho
+vzalo jako skutečný nález. Ne kvůli závažnosti následku, ale protože
+`docs/architecture.md` popisoval dvoucifernou předponu jako pravidlo, které kód
+nekontroloval. **Dokumentovaná lež je horší než chybějící pravidlo.** Soubor
+`-x.html` se v `LC_ALL=C` řadí před `00-head.html`, takže by jeho obsah skončil nad
+`<!DOCTYPE html>` → quirks mode, a hradlo přitom zelené. Teď exit 2.
+
+## Chyby měření v téhle dávce — tři
+
+1. Autor: harness kola 1 měl zadrátovaný hash celku 1, takže po celku 2 hlásil
+   „MUTATED BY GATE" u všech běhů včetně kontrolního. Našel si sám.
+2. Dráha testů: „GATE WROTE INDEX" z porovnání proti nemutovanému hashi. Našla si sama.
+3. **Vedení: `$?` za rourou.** Měřil jsem `bash check-index.sh | head -1; echo $?`
+   a dostával 0 u případů, které správně vracely 2 — `$?` vrací status `head`.
+   Metodika přesně před tímhle varuje („nikdy `tee | head`"). Nebýt přeměření,
+   hlásil bych, že opravy kola 2 nefungují.
+
+## Nepořádnost vedení při mergi
+
+Dvakrát jsem si sám zablokoval merge: nejdřív duplicitním
+`notes/impl/oprava-1-index.sha256` v hlavním stromě, pak tím, že jsem commitnul
+dokumenty vedení na `main` a rozbil fast-forward. Druhé řešeno cherry-pickem;
+ověřeno, že všech 26 souborů dávky je na `main` bajtově shodných s autorovým
+stromem `573130b`.
+
+## Přejímka — strojová část
+
+    servírovaný dokument == repo (po normalizaci bustu)       bajtová shoda
+    rozdíl proti stavu před dávkou                            přesně 1 řádek značky
+    /static/partials/, /frontend/partials/, traversal          3× HTTP 404
+    části v image                                             16 (záchranná síť)
+    runtime se jich nedotkl                                    index.html z 13:50, značka na ř. 2
+
+Zbývá vizuální část — do té chvíle platí mez „dokument nikdo neviděl v prohlížeči".
+
+## Přejímka — vizuální část (0 placených volání)
+
+Prošlo: 7 stránek, full player, DJ panel, fronta (mobilní i desktopová varianta —
+`#fpQueuePanel` se renderuje jen pod 640 px, nad tím inline do `#fpQueueSide`),
+3 modály. `compatMode: CSS1Compat`. 47 statických požadavků, všechny 200.
+Žádný `pageerror`. Značka je prvním uzlem za doctype a `<head>` má pořád
+`<meta charset>` jako první element — komentář ho nevytlačil.
+
+**Sedm nálezů pro další dávku, všechny starší než tahle dávka** (a, b ověřeny proti
+`5663b32`; CSS se dávka nedotkla vůbec): rozbitá dlaždice Liked Songs, dvojí šířka
+Settings (`.settings-form` zavírá před skupinami Account/Admin — dávka rozdělila
+podél už existující trhliny), prosvítající full player (`0.99` místo `1`), e2e smetí
+na účtu `claude_test`, 31 nevysbíraných dočasných playlistů, 404 z `/api/bpm/track`
+u běžných tracků, oříznutý spodek DJ panelu na mobilu. Podrobnosti a snímky na wiki.
+
+## Uzavření
+
+- `docs/` — autor (architecture.md, README.md)
+- CLAUDE.md — vedení, sekce „Frontend: `static/index.html` is GENERATED"
+- předávka — tento soubor
+- wiki — shrnutí dávky + 6 snímků, kolekce Private
+
+Dávka uzavřena. Pushnuto na `origin/main` 16. 10. 2026 na výslovný pokyn —
+spolu se čtyřmi commity dávky odešly i čtyři starší nepushnuté (search, queue).
+`snimky/` zůstávají netrackované.
