@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# Refuse a commit whose static/index.html does not match frontend/partials/.
+# Without this, editing the generated index.html directly looks fine until
+# someone runs scripts/build-index.sh and silently reverts the edit.
+#
+# Activate once per clone (git does not do it for you):
+#
+#     git config core.hooksPath .githooks
+#
+# This checks the STAGED content, not the working tree. Checking the working tree
+# was bypassable without --no-verify: stage a hand edit to static/index.html, run
+# build-index.sh to tidy the working tree, commit — the hook saw a clean tree and
+# the hand edit went into HEAD anyway. So the staged files are materialised into a
+# scratch tree and the gate runs against that.
+#
+# The scripts come from the working tree rather than the index: they are the tool
+# doing the checking, and the thing under test is the content being committed.
+#
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+
+# Nothing to check on a commit that has no partials staged — an older branch, a
+# git bisect checkout, a revert of the split. Asked of the index, same as
+# everything else below, so this cannot disagree with what the gate then sees.
+if [ -z "$(git ls-files -- 'frontend/partials')" ]; then
+  exit 0
+fi
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+git ls-files -z -- 'frontend/partials' 'static/index.html' \
+  | git checkout-index -z --stdin --prefix="$tmp/"
+
+mkdir -p "$tmp/scripts"
+cp "$root/scripts/check-index.sh" "$root/scripts/lib-partials.sh" "$tmp/scripts/"
+
+bash "$tmp/scripts/check-index.sh"

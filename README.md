@@ -107,7 +107,7 @@ Built with FastAPI + vanilla JS. Runs as a single Docker container. Native apps 
 - **Mobile nav** — bottom tab bar with Search / Discover / Library / Downloads / Settings, plus "Playing" pill
 - **Dark theme** — Spotify-inspired with lime green accent
 - **Responsive** — desktop top nav, mobile bottom tab bar with safe-area insets
-- **No build step** — single HTML file, vanilla JS modules
+- **No build step** — single HTML shell generated from `frontend/partials/`, vanilla JS modules
 
 ## Screenshots
 

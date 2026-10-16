@@ -106,10 +106,48 @@ shared. (With a single shared account every MusicSeeker user saw the admin's pla
 ## Frontend
 
 - **Single Page Application** — vanilla JavaScript, no framework, no build step
-- **Single HTML file** (`static/index.html`) with modular JS (`static/js/*.js`)
+- **Generated HTML shell** — `static/index.html` is built from `frontend/partials/*.html`
+  (see below); JS stays modular (`static/js/*.js`)
 - **ES modules** — `import`/`export` with dynamic imports for code splitting
 - **CSS architecture** — separate files per component, CSS custom properties for theming
 - **Responsive** — desktop top nav, mobile bottom tab bar with `env(safe-area-inset-*)` handling
+
+### `static/index.html` is generated
+
+`static/index.html` is the concatenation of `frontend/partials/*.html` in glob order.
+The prefixes are always two digits (`00-head.html`, `10-login.html`, …) because a
+single-digit prefix sorts *after* `10-`. The partials are a line-for-line
+decomposition of the document, so the build adds nothing of its own — it is `cat`,
+no templating, no dependency, nothing at runtime.
+
+- **Edit a partial, then run `scripts/build-index.sh`.** Both the partials and the
+  generated `static/index.html` are committed; the generated file carries a
+  `GENERATED FILE` comment on its second line.
+- **`scripts/check-index.sh`** verifies the two are in sync, and separately that
+  `frontend/partials/` holds only plain `*.html` files, each ending in a newline. It
+  builds into a temporary file and never writes `static/index.html`.
+- To run that check before every commit: `git config core.hooksPath .githooks`. Git does
+  not do this for you after `git clone`. The hook checks the *staged* content, and does
+  nothing on a commit with no partials staged (an older branch, a `git bisect` checkout).
+- The partials sit outside `static/` on purpose — that directory is mounted by
+  `StaticFiles` without authentication, so partials under it would be served as a
+  second, broken copy of the markup.
+- Only plain `*.html` files directly inside `frontend/partials/` are built. A
+  subdirectory, a symlink, a dotfile or a `.HTML` typo is a hard error rather than a
+  file the glob quietly skips — silently dropping markup is the failure mode worth
+  being loud about.
+
+#### What a green `check-index.sh` proves
+
+It proves the partials and `static/index.html` **agree**. It does **not** prove the
+document is intact. Delete a partial, run `build-index.sh`, and the gate is green again
+on the shorter page — `#fullPlayer` can be gone and both sides still agree about it.
+
+Once the two sides match, no comparison between them can report that a third thing is
+missing. What catches a deleted partial is the diff: a file disappears and ~157 lines
+vanish from `static/index.html`. That is loud in review, which is where it belongs. A
+manifest of expected partials was considered and rejected — it would be a third copy of
+the same truth, and would drift from the other two.
 
 ### Pages
 
