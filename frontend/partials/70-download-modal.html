@@ -1,0 +1,56 @@
+<!-- ── Download Modal ── -->
+<div class="modal-overlay" id="downloadModal">
+  <div class="modal" style="position:relative;">
+    <button class="btn-close" id="modalClose">&times;</button>
+    <div class="modal-header">
+      <img class="modal-img" id="modalImg">
+      <div class="modal-info">
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-artist" id="modalArtist"></div>
+      </div>
+    </div>
+    <div id="modalLibraryNotice" style="display:none;">
+      Already in your library
+    </div>
+
+    <!-- Primary intent: listen now -->
+    <button class="modal-btn-primary" id="modalPlay">&#9654; Play Now</button>
+
+    <!-- Secondary quick actions: queue + tangential controls -->
+    <div class="modal-quick-row">
+      <button class="modal-btn-outline" id="modalAddQueue" style="flex:1;">+ Add to Queue</button>
+      <button class="modal-chip" id="modalRadio" title="Start a radio based on this">&#x1f4fb; Radio</button>
+      <button class="modal-chip" id="modalFavToggle" title="Follow this artist">&#x2661; Follow</button>
+    </div>
+
+    <div class="modal-divider"><span>Download to library</span></div>
+
+    <!-- Download intent: method/format only ever apply here -->
+    <div class="modal-download-panel">
+      <div class="modal-section" id="methodSection">
+        <div class="modal-label">Method</div>
+        <div class="option-group" id="methodGroup">
+          <button class="option-btn selected" data-value="yt-dlp">yt-dlp<small>Fastest</small></button>
+          <button class="option-btn" data-value="slskd">Soulseek<small>Best quality</small></button>
+          <button class="option-btn" data-value="lidarr">Lidarr<small>Runs in background</small></button>
+        </div>
+        <div class="modal-hint" id="modalMethodHint"></div>
+      </div>
+      <div class="modal-section" id="formatSection">
+        <div class="modal-label">Format</div>
+        <div class="option-group" id="formatGroup">
+          <button class="option-btn selected" data-value="flac">FLAC</button>
+          <button class="option-btn" data-value="mp3">MP3 320k</button>
+        </div>
+      </div>
+      <button class="modal-btn-outline modal-btn-download-cta" id="modalDownload">Download</button>
+    </div>
+
+    <button class="btn-download" id="modalDeleteTrack" style="display:none;background:var(--red);color:#fff;width:100%;margin-top:16px;">Delete from Library</button>
+    <label id="modalAutoDownload" class="modal-auto-dl" style="display:none;">
+      <input type="checkbox" id="modalAutoDownloadCb">
+      <span>Auto-download new releases</span>
+    </label>
+  </div>
+</div>
+

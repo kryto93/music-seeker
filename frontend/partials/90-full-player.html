@@ -1,0 +1,157 @@
+<!-- ── Full Player ── -->
+<div class="full-player" id="fullPlayer">
+  <div class="fp-player-side" id="fpPlayerSide">
+    <div class="fp-drag-handle"></div>
+    <div class="fp-header">
+      <button id="fpClose" title="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <span class="fp-source">Now Playing</span>
+      <button id="fpQueueTop" title="Queue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+    </div>
+    <div class="fp-art-wrap">
+      <img class="fp-art" id="fpImg" alt="">
+    </div>
+    <div class="fp-info">
+      <div class="fp-title" id="fpTitle"></div>
+      <div class="fp-artist-row"><span class="fp-artist" id="fpArtist"></span><span class="source-badge" id="fpSourceBadge"></span><span class="prefetch-status" id="fpPrefetchStatus"></span></div>
+    </div>
+    <div class="fp-progress">
+      <div class="fp-progress-bar" id="fpProgressBar">
+        <div class="fp-progress-fill" id="fpProgressFill"></div>
+      </div>
+      <div class="fp-times">
+        <span id="fpTimeCurrent">0:00</span>
+        <span id="fpTimeTotal">0:00</span>
+      </div>
+    </div>
+    <div class="fp-controls">
+      <button class="fp-mode-btn" id="fpShuffle" title="Shuffle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+      <button id="fpPrev" title="Previous"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z"/></svg></button>
+      <button class="fp-play-btn" id="fpPlayPause" title="Play"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" id="fpPlayPauseIcon"><path d="M8 5v14l11-7z"/></svg></button>
+      <button id="fpNext" title="Next"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/></svg></button>
+      <button class="fp-mode-btn" id="fpRepeat" title="Repeat off"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg><span class="fp-repeat-badge" id="fpRepeatBadge"></span></button>
+    </div>
+    <div class="fp-actions">
+      <span class="fp-actions-group" id="fpActionsGroupDj">
+        <button class="fp-mode-btn" id="fpDjMode" title="DJ Mode" style="display:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+        <button class="fp-mode-btn" id="fpDjPanelBtn" title="DJ controls" aria-haspopup="dialog" aria-expanded="false" style="display:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></button>
+      </span>
+      <span class="fp-actions-divider"></span>
+      <span class="fp-actions-group">
+        <button class="like-btn" id="fpLike" title="Add to Liked Songs"></button>
+        <button id="fpAddToPlaylist" title="Add to playlist"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+        <button id="fpRemoveFromPlaylist" title="Remove from playlist" style="display:none;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+        <button id="fpDownload" title="Download"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      </span>
+      <span class="fp-actions-divider"></span>
+      <span class="fp-actions-group">
+        <button id="fpDevicesBtn" title="Remote devices"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+        <button id="fpCastBtn" title="Cast to speaker"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/></svg></button>
+        <div class="fp-vol-wrap">
+          <button id="fpMute" title="Mute" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;display:flex;align-items:center;"><svg id="fpMuteIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg></button>
+          <input type="range" class="fp-vol" id="fpVolume" min="0" max="100" value="100">
+        </div>
+      </span>
+    </div>
+    <div class="fp-cast-vol" id="fpCastVol" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/></svg>
+      <input type="range" class="fp-vol" id="fpCastVolume" min="0" max="100" value="10">
+      <span id="fpCastVolLabel" style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right;">10%</span>
+    </div>
+  </div>
+
+  <!-- ── DJ Quick-Control Drawer (DJ engine only) ── -->
+  <div class="fp-dj-backdrop" id="fpDjBackdrop"></div>
+  <div class="fp-dj-panel" id="fpDjPanel" role="dialog" aria-modal="false" aria-label="DJ quick controls" aria-hidden="true">
+    <div class="fp-dj-handle"></div>
+    <div class="fp-dj-head">
+      <span class="fp-dj-title">🎛 Live DJ Controls</span>
+      <button class="fp-dj-close" id="fpDjPanelClose" title="Close" aria-label="Close DJ controls"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="fp-dj-body">
+      <div class="setting-group">
+        <label class="setting-label" for="fpPlayerEngine">Player</label>
+        <select class="setting-select" id="fpPlayerEngine">
+          <option value="classic">Classic</option>
+          <option value="dj">DJ Player (EQ transitions)</option>
+        </select>
+      </div>
+      <div id="fpDjOnlyRows">
+      <div class="setting-group">
+        <label class="setting-label" for="fpDjSmartQueue">Smart Queue</label>
+        <select class="setting-select" id="fpDjSmartQueue">
+          <option value="off">Playlist order — queue as it is</option>
+          <option value="bpm">BPM Match — closest BPM</option>
+          <option value="bpm_key">BPM + Key — harmonic match</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label" for="fpDjTempoPref">Tempo</label>
+        <select class="setting-select" id="fpDjTempoPref">
+          <option value="auto">Auto — any tempo</option>
+          <option value="slow">Slow — &lt;90 BPM</option>
+          <option value="mid">Mid — 90-110 BPM</option>
+          <option value="fast">Fast — 110+ BPM</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label" for="fpDjCrossfadeBeats">Crossfade Length</label>
+        <select class="setting-select" id="fpDjCrossfadeBeats">
+          <option value="8">8 beats — tight, punchy</option>
+          <option value="16">16 beats — standard blend</option>
+          <option value="32">32 beats — long atmospheric</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label" for="fpDjTransitionStyle">Transition Style</label>
+        <select class="setting-select" id="fpDjTransitionStyle">
+          <option value="auto">Auto — by musical key</option>
+          <option value="eq_swap">EQ Swap — 3-band bass swap</option>
+          <option value="filter_sweep">Filter Sweep — HPF/LPF</option>
+          <option value="blend">Blend — equal-power</option>
+          <option value="drop_cut">Drop Cut — filter + hard cut</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="setting-label" for="fpDjEnergyWeight">Energy Intensity</label>
+        <div class="setting-range-row">
+          <input class="setting-range" id="fpDjEnergyWeight" type="range" min="0" max="30" step="1" value="10">
+          <span class="setting-range-val" id="fpValDjEnergyWeight">10</span>
+        </div>
+      </div>
+      <div class="setting-group fp-dj-preload-group">
+        <label class="setting-label">Preload Set</label>
+        <div class="fp-dj-preload-row">
+          <button class="fp-dj-preload-btn" id="fpDjPreloadBtn" type="button">Preload set</button>
+          <span class="fp-dj-preload-status" id="fpDjPreloadStatus"></span>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="fp-dj-foot">
+      <button class="fp-dj-more" id="fpDjMoreSettings">More in Settings →</button>
+      <span class="fp-dj-saved" id="fpDjSavedStatus"></span>
+    </div>
+  </div>
+
+  <div class="fp-queue-side" id="fpQueueSide">
+    <div class="panel-header">Queue <span class="playlist-mode-badge" id="fpPlaylistBadge" style="display:none;"></span><div style="display:flex;gap:8px;align-items:center;"><button class="btn-logout" id="fpSaveQueue" style="font-size:11px;display:none;">Save</button><button class="btn-logout" id="fpClearQueue" style="font-size:11px;">Clear</button></div></div>
+    <div class="queue-list" id="fpQueueList"></div>
+  </div>
+</div>
+
+<!-- ── Queue Panel ── -->
+<div class="queue-backdrop" id="queueBackdrop"></div>
+<div class="queue-panel" id="queuePanel">
+  <div class="panel-header">
+    Queue
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn-logout" id="clearQueue" style="font-size:11px;">Clear</button>
+      <button class="panel-close" id="queuePanelClose">&times;</button>
+    </div>
+  </div>
+  <div class="queue-list" id="queueList">
+    <div class="empty-state"><p>Queue is empty</p></div>
+  </div>
+  <div class="queue-drag-handle"></div>
+</div>
+

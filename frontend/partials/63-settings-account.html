@@ -1,0 +1,92 @@
+  <div class="settings-group">
+  <div class="settings-group-label">Account &amp; App</div>
+  <details class="setting-section" id="spotifySection">
+    <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14.5c2.5-1 5.5-1 8 .5M7.5 11c3-1.2 6.5-1 9.5 1M7 8c3.5-1.2 8-.8 11 1.5"/></svg><span class="setting-section-label">Account</span></summary>
+    <div class="setting-section-body">
+      <div id="spotifyStatus" style="font-size:13px;margin-bottom:12px;"></div>
+      <div style="margin-bottom:16px;">
+        <button class="btn-save" id="spotifyOAuth" style="background:var(--accent);color:#000;font-weight:600;padding:10px 24px;font-size:14px;">
+          &#9835; Authorize with Spotify
+        </button>
+        <button class="btn-save" id="spotifyDisconnect" style="background:var(--border);display:none;margin-left:8px;">Disconnect</button>
+        <span class="save-status" id="spotifyOAuthStatus"></span>
+      </div>
+      <details style="margin-bottom:8px;">
+        <summary style="font-size:12px;color:var(--text-muted);cursor:pointer;">Advanced: Manual credentials</summary>
+        <div id="spotifyConnectForm" style="margin-top:8px;">
+        <div class="setting-group">
+          <label class="setting-label">Client ID</label>
+          <input class="setting-input" id="spotifyClientId" type="text" placeholder="Enter Spotify Client ID...">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Client Secret</label>
+          <div class="input-reveal-wrap">
+            <input class="setting-input" id="spotifyClientSecret" type="password" placeholder="Enter Client Secret...">
+            <button type="button" class="btn-reveal" data-reveal="spotifyClientSecret" title="Show/hide" aria-label="Show client secret"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Refresh Token</label>
+          <div class="input-reveal-wrap">
+            <input class="setting-input" id="spotifyRefreshToken" type="password" placeholder="Enter Refresh Token...">
+            <button type="button" class="btn-reveal" data-reveal="spotifyRefreshToken" title="Show/hide" aria-label="Show refresh token"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn-save" id="spotifyConnect">Connect</button>
+          <span class="save-status" id="spotifyConnStatus"></span>
+        </div>
+      </div>
+      </details>
+      <div class="setting-group" style="margin-top:12px;">
+        <label class="setting-toggle">
+          <input type="checkbox" id="settingHideSpotify">
+          <span class="switch"></span>
+          <span>Hide "My Spotify" from navigation</span>
+        </label>
+      </div>
+    </div>
+  </details>
+
+  <details class="setting-section" id="desktopAppSection">
+    <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg><span class="setting-section-label">App</span></summary>
+    <div class="setting-section-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+        Run MusicSeeker as a standalone app with its own window.
+        The app connects to the server — no updates needed when the backend changes.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="appDownloadButtons"></div>
+      <p class="setting-hint" id="appIpcStatus" style="display:none;margin-top:8px;"></p>
+      <p class="setting-hint" id="macQuarantineHint" style="display:none;margin-top:8px;">
+        Installing from inside the app replaces the bundle and clears macOS
+        quarantine for you. A copy downloaded through a browser instead opens as
+        <em>"MusicSeeker is damaged"</em> — clear it once with
+        <code>sudo xattr -cr /Applications/MusicSeeker.app</code>.
+      </p>
+      <div id="appUpdateBanner" style="display:none;margin-top:12px;padding:12px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--accent);">Update available</div>
+            <div id="appUpdateVersion" style="font-size:11px;color:var(--text-muted);margin-top:2px;"></div>
+            <div id="appUpdateSize" style="font-size:11px;color:var(--text-muted);margin-top:1px;"></div>
+          </div>
+          <button id="appUpdateLink" class="btn-save" style="padding:8px 16px;font-size:12px;white-space:nowrap;">
+            Download
+          </button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn-save" id="refreshCacheBtn" style="flex:1;background:var(--bg-elevated);color:var(--text);border:1px solid var(--border);">
+          Refresh
+        </button>
+        <button class="btn-save" id="clearCacheBtn" style="flex:1;background:var(--bg-elevated);color:var(--text);border:1px solid var(--border);">
+          Clear All &amp; Logout
+        </button>
+      </div>
+      <p id="appCurrentVersion" style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+        macOS 10.15+ / Android 7.0+. Built with Tauri.
+      </p>
+    </div>
+  </details>
+  </div><!-- /settings-group: Account & App -->
+

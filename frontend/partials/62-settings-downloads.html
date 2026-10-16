@@ -1,0 +1,169 @@
+    <div class="settings-group">
+    <div class="settings-group-label">Library &amp; Downloads</div>
+    <details class="setting-section">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span class="setting-section-label">This Device</span></summary>
+      <div class="setting-section-body">
+        <span class="save-status" id="deviceSaveStatus"></span>
+        <div class="setting-group">
+          <label class="setting-label">Device Name</label>
+          <input class="setting-input" id="settingDeviceName" type="text" placeholder="e.g. Phone, Work PC, Tablet">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Output Mode</label>
+          <select class="setting-select" id="settingOutputMode">
+            <option value="default">Default (local + cast button)</option>
+            <option value="local">Local Only (no casting)</option>
+            <option value="dlna_only">DLNA Only (cast to receiver)</option>
+          </select>
+        </div>
+        <div class="setting-group" id="deviceDlnaRow" style="display:none;">
+          <label class="setting-label">DLNA Renderer URL</label>
+          <input class="setting-input" id="settingDeviceDlnaUrl" type="text" placeholder="http://192.168.1.95:8888/upnp_descriptor_0">
+          <p class="setting-help">Per-device override. Applies only to this device when its Output Mode is DLNA Only.</p>
+        </div>
+        <details style="margin-top:12px;">
+          <summary style="font-size:12px;color:var(--text-muted);cursor:pointer;">My Devices</summary>
+          <div id="myDevicesList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+        </details>
+      </div>
+    </details>
+
+    <details class="setting-section" id="librarySection">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg><span class="setting-section-label">Library</span></summary>
+      <div class="setting-section-body">
+        <div class="setting-group">
+          <label class="setting-label">Navidrome URL</label>
+          <input class="setting-input" id="settingNavidromeUrl" type="text" placeholder="http://navidrome:4533">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Navidrome User</label>
+          <input class="setting-input" id="settingNavidromeUser" type="text" placeholder="lucas">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Navidrome Password</label>
+          <div class="input-reveal-wrap">
+            <input class="setting-input" id="settingNavidromePass" type="password" placeholder="Enter password...">
+            <button type="button" class="btn-reveal" data-reveal="settingNavidromePass" title="Show/hide" aria-label="Show password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;margin-top:4px;">
+          <button class="btn-save" id="saveTestNavidrome">Save</button>
+          <span class="conn-status" id="navidromeConnStatus" style="display:none;"></span>
+        </div>
+      </div>
+    </details>
+
+    <details class="setting-section" id="downloadsSection">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="setting-section-label">Downloads</span></summary>
+      <div class="setting-section-body">
+        <span class="save-status" id="downloadsSaveStatus"></span>
+        <div class="setting-group">
+          <label class="setting-label">Music Search</label>
+          <select class="setting-select" id="settingSearchProvider">
+            <option value="deezer">Deezer</option>
+            <option value="ytmusic">YouTube Music</option>
+            <option value="apple">Apple Music / iTunes</option>
+            <option value="spotify">Spotify (requires API credentials)</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Music Search Fallback</label>
+          <select class="setting-select" id="settingSearchFallback">
+            <option value="">Auto (default)</option>
+            <option value="deezer">Deezer</option>
+            <option value="ytmusic">YouTube Music</option>
+            <option value="apple">Apple Music / iTunes</option>
+            <option value="spotify">Spotify</option>
+            <option value="none">None (no fallback)</option>
+          </select>
+          <div id="searchFallbackNote" class="setting-help"></div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Podcast Search</label>
+          <select class="setting-select" id="settingPodcastProvider">
+            <option value="itunes">iTunes (free, no key needed)</option>
+            <option value="spotify">Spotify (requires API credentials)</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Default Download Method</label>
+          <select class="setting-select" id="settingMethod">
+            <option value="yt-dlp">yt-dlp (YouTube, FLAC/MP3)</option>
+            <option value="slskd">Soulseek (P2P)</option>
+            <option value="lidarr">Lidarr (Torrent, monitors)</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Default Format</label>
+          <select class="setting-select" id="settingFormat">
+            <option value="flac">FLAC</option>
+            <option value="mp3">MP3 320k</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Max Concurrent Downloads</label>
+          <input class="setting-input" id="settingMaxConcurrent" type="number" min="1" max="20" value="10">
+        </div>
+      </div>
+    </details>
+
+    <details class="setting-section" id="downloadSourcesSection">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="setting-section-label">Download Sources</span></summary>
+      <div class="setting-section-body">
+        <div class="setting-group">
+          <label class="setting-label">slskd URL</label>
+          <input class="setting-input" id="settingSlskdUrl" type="text" placeholder="http://slskd:5030">
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">slskd API Key</label>
+          <div class="input-reveal-wrap">
+            <input class="setting-input" id="settingSlskdKey" type="password" placeholder="Enter API key...">
+            <button type="button" class="btn-reveal" data-reveal="settingSlskdKey" title="Show/hide" aria-label="Show API key"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;margin-top:4px;">
+          <button class="btn-save" id="saveTestSlskd">Save</button>
+          <span class="conn-status" id="slskdConnStatus" style="display:none;"></span>
+        </div>
+      </div>
+    </details>
+
+    <details class="setting-section" id="recommendationsSection">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="setting-section-label">Recommendations</span></summary>
+      <div class="setting-section-body">
+        <span class="save-status" id="recommendationsSaveStatus"></span>
+        <div class="setting-group">
+          <label class="setting-label">Recommendation Source</label>
+          <select class="setting-select" id="settingRecommendation">
+            <option value="combined">Combined (Deezer + Last.fm)</option>
+            <option value="deezer">Deezer (artist radio — fast)</option>
+            <option value="lastfm">Last.fm (track similarity — precise)</option>
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <details class="setting-section">
+      <summary class="setting-section-title"><svg class="setting-section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16.1A5 5 0 015.9 20M2 12.05A9 9 0 019.95 20M2 8V6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/></svg><span class="setting-section-label">Casting</span></summary>
+      <div class="setting-section-body">
+        <span class="save-status" id="castingSaveStatus"></span>
+        <div class="setting-group">
+          <label class="setting-label">DLNA Renderer</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select class="setting-select" id="settingDlnaDevice" style="flex:1;">
+              <option value="">Disabled</option>
+            </select>
+            <button class="btn-save" id="dlnaScanBtn" style="padding:8px 14px;font-size:12px;white-space:nowrap;">Scan</button>
+          </div>
+          <div id="dlnaScanStatus" class="setting-help"></div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Manual Renderer URL (if auto-scan fails)</label>
+          <input class="setting-input" id="settingDlnaUrl" type="text" placeholder="http://192.168.1.95:8888/upnp_descriptor_0">
+          <p class="setting-help">Global server-side renderer, shared by all devices. For a single-device override, use the per-device DLNA Renderer URL under This Device.</p>
+        </div>
+      </div>
+    </details>
+    </div><!-- /settings-group: Library & Downloads -->
+  </div>
+

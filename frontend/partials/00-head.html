@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MusicSeeker</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=__CACHE_BUST__">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/variables.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/base.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/login.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/nav.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/search.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/cards.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/modal.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/downloads.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/player.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/pages.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/settings.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/responsive.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/contextmenu.css?v=__CACHE_BUST__">
+<link rel="stylesheet" href="/static/css/feedback.css?v=__CACHE_BUST__">
+<style>
+  /* ── Visible kebab (⋯) button: opens the context menu (mobile-friendly) ── */
+  .kebab-btn {
+    background: rgba(0,0,0,.55); color: var(--text);
+    border: none; border-radius: 50%;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .15s, color .15s;
+    flex-shrink: 0;
+  }
+  .kebab-btn:hover { background: rgba(0,0,0,.75); color: var(--accent); }
+  /* On cards: pinned top-left (top-right is the follow button), above the art. */
+  .card .kebab-btn {
+    position: absolute; top: 8px; left: 8px; z-index: 4;
+    width: 40px; height: 40px;
+  }
+  /* Library-detail cards already use top-left (checkbox) + top-right (remove)
+     + bottom corners (play/download), so place the kebab on the right edge. */
+  .card .kebab-btn.kebab-lib { top: 50%; left: auto; right: 8px; transform: translateY(-50%); }
+  /* In queue rows the kebab sits inline, before the remove button. */
+  .queue-item .kebab-btn { width: 40px; height: 40px; background: none; }
+  .queue-item .kebab-btn:hover { background: rgba(255,255,255,.06); }
+  /* ── Mini player-bar shuffle/repeat active state (mirrors .fp-mode-btn) ── */
+  .player-actions .player-mode-btn { position: relative; }
+  .player-actions .player-mode-btn.active { color: var(--accent) !important; }
+  .player-actions .player-mode-btn .player-repeat-badge {
+    position: absolute; top: 2px; right: 4px;
+    font-size: 9px; font-weight: 700; color: var(--accent);
+  }
+  /* ── Like (heart) buttons — used in player bar, full player, rows/cards ── */
+  .like-btn {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; padding: 0; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    transition: color .15s, transform .1s;
+  }
+  .like-btn:hover { color: var(--text); }
+  .like-btn:active { transform: scale(.85); }
+  .like-btn.liked { color: #1db954; }
+  /* On cards: pinned top-right corner, above the art (kebab is top-left). */
+  .card .like-btn {
+    position: absolute; top: 8px; right: 8px; z-index: 4;
+  }
+  /* When the "In Library" badge is present (top-right), shift the heart left
+     so it clears the badge instead of overlapping it. */
+  .card.in-library .like-btn { right: 84px; }
+  /* In queue rows the heart sits inline, before the kebab. */
+  .queue-item .like-btn:hover { background: rgba(255,255,255,.06); border-radius: 50%; }
+  /* Library-detail cards: bottom-right is the play button, top-right is remove,
+     mid-right is the kebab — so sit the heart on the mid-right edge just left of
+     the kebab (kebab is right:8, heart right:52), clear of play/remove/download. */
+  #libraryTracks .card .like-btn { top: 50%; bottom: auto; right: 52px; transform: translateY(-50%); }
+  /* ── Recent searches (chips shown when the input is focused & empty) ── */
+  .recent-searches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .recent-chip {
+    background: var(--bg-elevated); color: var(--text);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .recent-chip:hover { background: var(--bg-card, rgba(255,255,255,.08)); border-color: var(--accent); }
+  .recent-clear {
+    background: none; border: none; color: var(--text-muted);
+    font-size: 12px; cursor: pointer; padding: 6px 8px; margin-left: 4px;
+  }
+  .recent-clear:hover { color: var(--text); }
+  /* ── Keyboard navigation highlight on search result cards ── */
+  #searchResults .card.kbd-active { outline: 2px solid var(--accent); outline-offset: -2px; }
+</style>
+</head>
+<body>
+

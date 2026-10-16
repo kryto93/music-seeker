@@ -1,0 +1,320 @@
+<script type="module" src="/static/js/app.js?v=__CACHE_BUST__"></script>
+<script>
+// App update checker — semantic versioning, download size, SHA-256 verification
+// Based on claude-remote update mechanism
+
+function _isNewer(remote, local) {
+  var r = remote.split('.').map(Number);
+  var l = local.split('.').map(Number);
+  for (var i = 0; i < Math.max(r.length, l.length); i++) {
+    var rv = r[i] || 0, lv = l[i] || 0;
+    if (rv > lv) return true;
+    if (rv < lv) return false;
+  }
+  return false;
+}
+
+function _formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Download app — direct on desktop, copy link on Android WebView
+// ── Release assets per platform ──────────────────────────────────────
+// CI publishes four: MusicSeeker.dmg, MusicSeeker.apk, MusicSeeker-linux (a
+// portable binary) and MusicSeeker-manjaro-x86_64.pkg.tar.zst, each with its own
+// sha256-* key in the release body. The update check used to be
+// `isAndroid ? apk : dmg`, which offered a macOS DMG to Linux users and hid the
+// two Linux assets entirely.
+//
+// Distro is NOT detected: a browser user agent reports only "X11; Linux x86_64"
+// and cannot tell Arch from Debian. Linux therefore defaults to the portable
+// binary, which runs anywhere, and the pacman package is offered alongside it
+// rather than guessed at.
+var APP_ASSETS = {
+  macos:   { file: 'MusicSeeker.dmg', sha: 'sha256-dmg', label: 'macOS (.dmg)' },
+  android: { file: 'MusicSeeker.apk', sha: 'sha256-apk', label: 'Android (.apk)' },
+  linux:   { file: 'MusicSeeker-linux', sha: 'sha256-linux', label: 'Linux (portable)' },
+  arch:    { file: 'MusicSeeker-manjaro-x86_64.pkg.tar.zst', sha: 'sha256-pkg',
+             label: 'Arch / Manjaro (.pkg.tar.zst)' }
+};
+
+function _appPlatform() {
+  var ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return null;      // no iOS build is produced
+  if (/mac os x|macintosh/i.test(ua)) return 'macos';
+  if (/linux|x11/i.test(ua)) return 'linux';
+  return null;                                         // Windows: nothing is built
+}
+
+function _appAsset() {
+  var p = _appPlatform();
+  return p ? APP_ASSETS[p] : null;
+}
+
+// Render the download buttons: this machine's platform first, the rest after.
+// Linux gets BOTH Linux assets because the distro cannot be detected here.
+function _renderAppDownloads() {
+  var host = document.getElementById('appDownloadButtons');
+  if (!host) return;
+  var here = _appPlatform();
+  var order = here === 'linux' ? ['linux', 'arch', 'macos', 'android']
+            : here === 'macos' ? ['macos', 'android', 'linux', 'arch']
+            : here === 'android' ? ['android', 'macos', 'linux', 'arch']
+            : ['macos', 'android', 'linux', 'arch'];
+  host.innerHTML = '';
+  order.forEach(function(key, i) {
+    var spec = APP_ASSETS[key];
+    var btn = document.createElement('button');
+    btn.className = 'btn-save';
+    btn.textContent = spec.label;
+    // Only the first entry is "yours" — and only when the platform is known, so
+    // a Windows visitor sees four neutral options rather than a wrong default.
+    if (i === 0 && here) btn.style.fontWeight = '700';
+    else btn.style.opacity = '0.75';
+    btn.addEventListener('click', function() { _getApp(key, spec, btn); });
+    host.appendChild(btn);
+  });
+  var hint = document.getElementById('macQuarantineHint');
+  if (hint) hint.style.display = here === 'macos' ? '' : 'none';
+}
+
+// Last-resort handoff: put the link somewhere the user can act on it. Used
+// whenever neither the system browser nor a real download is available, so no
+// platform is left with a button that does nothing.
+function _copyDownloadLink(url, btn) {
+  navigator.clipboard.writeText(url).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = 'Link copied! Open in browser';
+    setTimeout(function() { btn.textContent = orig; }, 4000);
+  }).catch(function() {
+    prompt('Copy this link and open in your browser:', url);
+  });
+}
+
+// Getting the installer for the platform you are ON is a different job from
+// grabbing another platform's file. claude-remote never routes its own update
+// through a browser: it downloads the bytes and installs them (hdiutil → ditto →
+// xattr -cr → relaunch), which is exactly what install_macos_update already does
+// here. Sending a macOS user to the browser for their own DMG is what produced
+// the "MusicSeeker is damaged" dialog, because only the in-app path clears the
+// quarantine attribute. So: own platform -> install in place; anything else ->
+// hand the link to the browser.
+function _getApp(key, spec, btn) {
+  var inApp = !!(window.__TAURI__ && window.__TAURI__.core);
+  var url = 'https://github.com/lucashanak/music-seeker/releases/latest/download/' + spec.file;
+
+  // Linux has an in-app path too, but which asset it needs depends on whether
+  // this is a portable binary or a distro package — only the app can see that,
+  // so the command takes no arguments and decides for itself.
+  if (inApp && _appPlatform() === 'linux' && (key === 'linux' || key === 'arch')) {
+    var lorig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Installing…';
+    window.__TAURI__.core.invoke('install_linux_update')
+      .then(function(mode) {
+        // "installer" means a package installer window is now asking the user;
+        // the portable path never returns because the app restarts itself.
+        btn.textContent = mode === 'installer' ? 'Installer opened' : 'Installing…';
+      })
+      .catch(function(e) {
+        btn.disabled = false;
+        btn.textContent = lorig;
+        _copyDownloadLink(url, btn);
+      });
+    return;
+  }
+
+  if (inApp && key === 'macos' && _appPlatform() === 'macos') {
+    var orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Installing…';
+    window.__TAURI__.core.invoke('install_macos_update', { url: url })
+      .catch(function(e) {
+        // An older app without the command, or a failed install: fall back to
+        // the browser rather than leaving the button stuck — but say why first.
+        btn.disabled = false;
+        btn.textContent = orig;
+        var st = document.getElementById('appIpcStatus');
+        if (st) {
+          st.style.display = '';
+          st.style.color = '#e74c3c';
+          st.textContent = 'Install failed: ' + (e && e.message ? e.message : String(e));
+        }
+        downloadApp(spec.file, btn);
+      });
+    return;
+  }
+  downloadApp(spec.file, btn);
+}
+
+function downloadApp(filename, btn) {
+  var url = 'https://github.com/lucashanak/music-seeker/releases/latest/download/' + filename;
+  var isAndroid = /android/i.test(navigator.userAgent);
+  var inApp = !!(window.__TAURI__ && window.__TAURI__.core);
+
+  // Inside a webview `window.location.href = <binary>` cannot download anything —
+  // there is no download manager, so it either does nothing at all or navigates
+  // the app away from itself. On desktop hand the URL to the real browser; the
+  // clipboard fallback covers Android (no open_external there) and any failure.
+  if (inApp) {
+    window.__TAURI__.core.invoke('open_external', { url: url })
+      .catch(function() { _copyDownloadLink(url, btn); });
+    return;
+  }
+  if (!isAndroid) {
+    window.location.href = url;
+    return;
+  }
+  _copyDownloadLink(url, btn);
+}
+
+try { _renderAppDownloads(); } catch (e) {}
+
+// Report whether the app's IPC bridge actually works. window.__TAURI__ is
+// injected by withGlobalTauri regardless of whether a capability matches this
+// origin, so "the API exists" and "invoke is permitted" are different facts —
+// and with no devtools in a release build a denied invoke is otherwise silent.
+// current_server_url is the cheapest real command: no arguments, no side effects.
+try {
+  (function() {
+    var el = document.getElementById('appIpcStatus');
+    if (!el) return;
+    el.style.display = '';
+    if (!(window.__TAURI__ && window.__TAURI__.core)) {
+      el.textContent = 'App bridge: not present (running in a browser, or withGlobalTauri is off).';
+      return;
+    }
+    el.textContent = 'App bridge: checking…';
+    window.__TAURI__.core.invoke('current_server_url')
+      .then(function(url) { el.textContent = 'App bridge: OK — server ' + url; })
+      .catch(function(e) {
+        el.textContent = 'App bridge: BLOCKED — ' + (e && e.message ? e.message : String(e));
+        el.style.color = '#e74c3c';
+      });
+  })();
+} catch (e) {}
+
+// Update checker
+try {
+  var _params = new URLSearchParams(window.location.search);
+  var _appVer = _params.get('app_version');
+  if (_appVer) localStorage.setItem('app_installed_version', _appVer);
+  var _inst = localStorage.getItem('app_installed_version') || localStorage.getItem('app_version');
+  var _el = document.getElementById('appCurrentVersion');
+  if (_el) _el.textContent = _inst ? 'v' + _inst + ' — checking...' : 'Checking...';
+  fetch('https://api.github.com/repos/lucashanak/music-seeker/releases/latest')
+    .then(function(r) { return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
+    .then(function(rel) {
+      var latest = rel.tag_name.replace(/^v/, '');
+      var el = document.getElementById('appCurrentVersion');
+      if (!_inst) {
+        if (el) el.textContent = 'Latest: v' + latest;
+        return;
+      }
+      if (el) el.textContent = 'v' + _inst + ' (latest: v' + latest + ')';
+      if (_isNewer(latest, _inst)) {
+        var banner = document.getElementById('appUpdateBanner');
+        if (banner) {
+          document.getElementById('appUpdateVersion').textContent = _inst + ' \u2192 ' + latest;
+          var spec = _appAsset();
+          if (!spec) {
+            // No build exists for this platform — don't offer a download that
+            // would install the wrong thing.
+            document.getElementById('appUpdateSize').textContent = 'no build for this platform';
+            banner.style.display = 'block';
+            return;
+          }
+          var isAndroid = _appPlatform() === 'android';
+          var file = spec.file;
+          // Find asset size
+          var asset = (rel.assets || []).find(function(a) { return a.name === file; });
+          var sizeEl = document.getElementById('appUpdateSize');
+          if (asset && sizeEl) sizeEl.textContent = _formatBytes(asset.size);
+          // Extract SHA-256 from release body
+          var sha = null;
+          if (rel.body) {
+            var m = rel.body.match(new RegExp(spec.sha + ':([a-f0-9]{64})'));
+            if (m) sha = m[1];
+          }
+          var link = document.getElementById('appUpdateLink');
+          var isTauri = !!window.__TAURI__;
+          var isAndroid = /android/i.test(navigator.userAgent);
+          var downloadUrl = 'https://github.com/lucashanak/music-seeker/releases/latest/download/' + file;
+          var isLinuxApp = isTauri && /linux|x11/i.test(navigator.userAgent) && !isAndroid;
+          if (isLinuxApp) {
+            // Linux Tauri — in-app install; Rust picks portable-swap vs package
+            // installer based on where the binary actually lives.
+            link.textContent = 'Install';
+            link.onclick = function() {
+              link.disabled = true;
+              link.textContent = 'Installing...';
+              localStorage.setItem('app_installed_version', latest);
+              window.__TAURI__.core.invoke('install_linux_update')
+                .then(function(mode) {
+                  if (mode === 'installer') link.textContent = 'Installer opened';
+                })
+                .catch(function() {
+                  link.textContent = 'Failed';
+                  setTimeout(function() { link.textContent = 'Install'; link.disabled = false; }, 3000);
+                });
+              return false;
+            };
+          } else if (isTauri && !isAndroid) {
+            // macOS Tauri — auto-install via Rust command
+            link.textContent = 'Install';
+            link.onclick = function() {
+              link.disabled = true;
+              link.textContent = 'Installing...';
+              window.__TAURI__.core.invoke('install_macos_update', { url: downloadUrl })
+                .catch(function(e) {
+                  // Show what actually went wrong — a generic "Failed" for three
+                  // seconds hid the one piece of information worth having.
+                  link.textContent = 'Failed';
+                  var se = document.getElementById('appUpdateSize');
+                  if (se) se.textContent = (e && e.message ? e.message : String(e)).slice(0, 200);
+                  setTimeout(function() { link.textContent = 'Install'; link.disabled = false; }, 8000);
+                });
+              return false;
+            };
+          } else if (isAndroid && window.AndroidBridge && window.AndroidBridge.installApk) {
+            // Keyed off the bridge alone, NOT `isTauri &&`: AndroidBridge is
+            // injected via addJavascriptInterface and works on any origin, so
+            // the in-app APK update keeps working even if __TAURI__ is absent.
+            // Android Tauri — download + install via bridge
+            link.textContent = 'Install';
+            window._apkProgress = function(pct, msg) {
+              var sizeEl = document.getElementById('appUpdateSize');
+              if (pct < 0) { link.textContent = 'Retry'; link.disabled = false; if (sizeEl) sizeEl.textContent = msg; return; }
+              if (pct >= 100) { link.textContent = 'Installing...'; }
+              else if (sizeEl) sizeEl.textContent = msg;
+            };
+            link.onclick = function() {
+              link.disabled = true;
+              link.textContent = 'Downloading...';
+              localStorage.setItem('app_installed_version', latest);
+              window.AndroidBridge.installApk(downloadUrl);
+              return false;
+            };
+          } else {
+            // Browser fallback — download link
+            link.onclick = function() {
+              localStorage.setItem('app_installed_version', latest);
+              downloadApp(file, link);
+              return false;
+            };
+          }
+          banner.style.display = 'block';
+        }
+      }
+    })
+    .catch(function(e) {
+      var el = document.getElementById('appCurrentVersion');
+      if (el) el.textContent = _inst ? 'v' + _inst : 'Update check failed: ' + e;
+    });
+} catch(e) {}
+</script>
+</body>
+</html>
